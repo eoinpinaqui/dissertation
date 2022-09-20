@@ -1,0 +1,2 @@
+model_checkpoint_path: "BattleShip_AI_agent_weights"
+all_model_checkpoint_paths: "BattleShip_AI_agent_weights"
