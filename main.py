@@ -1,14 +1,12 @@
-import game.player
+from game import game_environment, player
 
-player = game.player.Player('Player', 0, 0, 0)
+game = game_environment.GameEnvironment()
+player = player.Player('player', 0, 0, 1)
+
 player.print()
-player.accelerate()
-player.move()
-player.print()
-player.rotate(45)
-player.move()
-player.move()
-player.move()
-player.move()
-player.move()
-player.print()
+game.add_element(player)
+
+while True:
+    player.move()
+    game.draw_elements_on_canvas()
+    game.render()

@@ -1,41 +1,26 @@
-import game.game_object
-import cv2
+import game_environment.game_object
 import numpy as np
 
 
-class Player(game.game_object.GameObject):
+class Player(game_environment.game_object.GameObject):
     __MIN_VELOCITY = 0
     __MAX_VELOCITY = 10
+    __ICON_PATH = './game/sprites/player.png'
 
-    def __init__(self, name: str, x: int, y: int, angle: int, velocity: int = 0) -> None:
-        super(Player, self).__init__(name, x, y, angle)
-        self.__velocity = velocity
-        self.__icon = cv2.imread('./game/sprites/player.png')
-        self.__icon_height, self.__icon_width, self.__icon_channels = self.__icon.shape
+    def __init__(self, name: str, x: int = 0, y: int = 0, angle: int = 0, velocity: int = 0) -> None:
+        super(Player, self).__init__(name, x, y, angle, velocity, self.__ICON_PATH)
+
+        icon_height, icon_width, icon_channels = super(Player, self).get_icon_shape()
 
         p = np.zeros((4, 2))
-        p[0] = (x - self.__icon_width / 4, y - self.__icon_height / 2)
-        p[1] = (x + self.__icon_width / 4, y - self.__icon_height / 2)
-        p[2] = (x + self.__icon_width / 4, y + self.__icon_height / 2)
-        p[3] = (x - self.__icon_width / 4, y + self.__icon_height / 2)
+        p[0] = (x - icon_width / 4, y - icon_height / 2)
+        p[1] = (x + icon_width / 4, y - icon_height / 2)
+        p[2] = (x + icon_width / 4, y + icon_height / 2)
+        p[3] = (x - icon_width / 4, y + icon_height / 2)
         super(Player, self).set_shape(p)
 
-    def accelerate(self) -> None:
-        self.__velocity = min(self.__MAX_VELOCITY, self.__velocity + 1)
+    def accelerate(self):
+        super(Player, self).accelerate(self.__MAX_VELOCITY)
 
-    def decelerate(self) -> None:
-        self.__velocity = max(self.__MIN_VELOCITY, self.__velocity - 1)
-
-    def move(self) -> None:
-        super(Player, self).move(self.__velocity)
-
-    def rotate(self, angle_of_rotation) -> None:
-        super(Player, self).rotate(angle_of_rotation)
-        transformation_matrix = cv2.getRotationMatrix2D((self.__icon_width // 2, self.__icon_height // 2),
-                                                        super(Player, self).get_angle(),
-                                                        1.0)
-        self.__icon = cv2.warpAffine(self.__icon, transformation_matrix, (self.__icon_width, self.__icon_height))
-
-    def print(self) -> None:
-        super(Player, self).print()
-        print(f'velocity: {self.__velocity}')
+    def decelerate(self):
+        super(Player, self).decelerate(self.__MIN_VELOCITY)
