@@ -1,6 +1,6 @@
 from gym import Env, spaces
 from .game_constants import GAME_WINDOW_WIDTH, GAME_WINDOW_HEIGHT, GAME_WINDOW_CHANNELS, BACKGROUND_COLOUR, \
-    OBSERVATION_WIDTH, OBSERVATION_HEIGHT
+    OBSERVATION_WIDTH, OBSERVATION_HEIGHT, TIME_REWARD, TIME_REWARD_THRESHOLD, CRASH_REWARD
 from .ship import Ship
 from shapely.geometry.polygon import Polygon
 import numpy as np
@@ -23,41 +23,51 @@ class SinglePlayerGame(Env):
         self.action_space = spaces.Discrete(5, )
 
         # Create a canvas to draw the game on
-        self.canvas = np.full((GAME_WINDOW_WIDTH, GAME_WINDOW_HEIGHT, GAME_WINDOW_CHANNELS), BACKGROUND_COLOUR, dtype=np.uint8)
+        self.canvas = np.full((GAME_WINDOW_WIDTH, GAME_WINDOW_HEIGHT, GAME_WINDOW_CHANNELS), BACKGROUND_COLOUR,
+                              dtype=np.uint8)
 
         # Create the game objects in the environment
         self.player = Ship('Player', GAME_WINDOW_WIDTH // 2, GAME_WINDOW_HEIGHT // 2, angle=0, speed=0, player=True)
         self.enemies = []
         self.missiles = []
-        self.time = 0
+
+        # Keeping track of stuff
         self.time_buffer = 0
+        self.total_reward = 0
 
     def draw_element_on_canvas(self, element):
         if self.structure.covers(element.hit_box):
-            left_gap = element.x - element.padded_icon_w // 2
-            right_gap = element.x + element.padded_icon_w // 2
-            top_gap = element.y - element.padded_icon_h // 2
-            bottom_gap = element.y + element.padded_icon_h // 2
-
-            start_canvas_x = max(0, left_gap)
-            end_canvas_x = min(GAME_WINDOW_WIDTH, right_gap)
-            start_canvas_y = max(0, top_gap)
-            end_canvas_y = min(GAME_WINDOW_HEIGHT, bottom_gap)
-
-            start_icon_x = 0 if left_gap > 0 else abs(left_gap)
-            end_icon_x = element.padded_icon_w if right_gap < GAME_WINDOW_WIDTH else element.padded_icon_w - (right_gap - GAME_WINDOW_WIDTH)
-            start_icon_y = 0 if top_gap > 0 else abs(top_gap)
-            end_icon_y = element.padded_icon_h if top_gap < GAME_WINDOW_HEIGHT else element.padded_icon_h - (top_gap - GAME_WINDOW_HEIGHT)
-
-            self.canvas[start_canvas_y:end_canvas_y, start_canvas_x:end_canvas_x] = element.icon[start_icon_y:end_icon_y, start_icon_x: end_icon_x]
+            (minx, miny, maxx, maxy) = element.hit_box.bounds
+            (minx, miny, maxx, maxy) = (int(minx), int(miny), int(maxx), int(maxy))
+            self.canvas[GAME_WINDOW_HEIGHT - maxy:GAME_WINDOW_HEIGHT - miny, minx:maxx] = \
+                element.icon[
+                    element.padded_icon_h - (element.padded_icon_h - (maxy - miny)) // 2 - (maxy - miny):
+                    element.padded_icon_h - (element.padded_icon_h - (maxy - miny)) // 2,
+                    (element.padded_icon_w - (maxx - minx)) // 2:
+                    (element.padded_icon_w - (maxx - minx)) // 2 + (maxx - minx)
+                ]
 
     def draw_elements_on_canvas(self):
-        self.canvas = np.full((GAME_WINDOW_WIDTH, GAME_WINDOW_HEIGHT, GAME_WINDOW_CHANNELS), BACKGROUND_COLOUR, dtype=np.uint8)
+        self.canvas = np.full((GAME_WINDOW_WIDTH, GAME_WINDOW_HEIGHT, GAME_WINDOW_CHANNELS), BACKGROUND_COLOUR,
+                              dtype=np.uint8)
         self.draw_element_on_canvas(self.player)
+        for enemy in self.enemies:
+            self.draw_element_on_canvas(enemy)
+
+        text = 'Score: ' + str(self.total_reward)
+        self.canvas = cv2.putText(self.canvas, text, (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1,
+                                  cv2.LINE_AA)
 
     def reset(self):
+        self.time_buffer = 0
+        self.total_reward = 0
+
         self.player = Ship('Player', GAME_WINDOW_WIDTH // 2, GAME_WINDOW_HEIGHT // 2, angle=0, speed=0, player=True)
-        self.enemies = []
+        self.enemies = [
+            Ship('Enemy', GAME_WINDOW_WIDTH // 4, GAME_WINDOW_HEIGHT // 4, angle=0, speed=0, player=False),
+            Ship('Enemy', GAME_WINDOW_WIDTH // 4, GAME_WINDOW_HEIGHT // 2, angle=0, speed=0, player=False),
+            Ship('Enemy', GAME_WINDOW_WIDTH // 4, 3 * GAME_WINDOW_HEIGHT // 4, angle=0, speed=0, player=False)
+        ]
         self.missiles = []
 
         return cv2.resize(self.canvas, (OBSERVATION_WIDTH, OBSERVATION_HEIGHT))
@@ -76,8 +86,8 @@ class SinglePlayerGame(Env):
     def step(self, action):
         done = False
 
+        # Apply the chosen action
         assert self.action_space.contains(action), "Invalid Action"
-
         if action == 0:
             self.player.rotate(6)
         elif action == 1:
@@ -87,11 +97,26 @@ class SinglePlayerGame(Env):
         elif action == 3:
             self.player.decelerate()
 
+        # Update the state of all elements in the game world
         self.player.move()
-
         self.draw_elements_on_canvas()
 
+        # Calculate the observed reward
+        reward = 0
+        self.time_buffer += 1
+        if self.time_buffer % TIME_REWARD_THRESHOLD == 0 and self.time_buffer != 0:
+            self.time_buffer = 0
+            reward += TIME_REWARD
+
+        # Check if the game is over
         if not self.structure.covers(self.player.hit_box):
             done = True
+            reward = CRASH_REWARD
 
-        return cv2.resize(self.canvas, (OBSERVATION_WIDTH, OBSERVATION_HEIGHT)), 1, done, []
+        for enemy in self.enemies:
+            if self.player.hit_box.intersects(enemy.hit_box):
+                done = True
+                reward = CRASH_REWARD
+
+        self.total_reward += reward
+        return cv2.resize(self.canvas, (OBSERVATION_WIDTH, OBSERVATION_HEIGHT)), reward, done, []

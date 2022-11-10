@@ -10,7 +10,7 @@ class Ship(GameObject):
         super(Ship, self).__init__(name, x=x, y=y, speed=speed)
 
         # Read in the appropriate icon
-        icon_to_read = './game_environment/sprites/player.png' if player else './game_environment/sprites/player.png'
+        icon_to_read = './game_environment/sprites/player.png' if player else './game_environment/sprites/enemy.png'
         temp_icon = cv2.imread(icon_to_read)
         self.icon = cv2.resize(temp_icon, (temp_icon.shape[0] * 2, temp_icon.shape[1] * 2))
         (self.icon_w, self.icon_h, self.icon_c) = self.icon.shape
@@ -26,11 +26,11 @@ class Ship(GameObject):
 
         # Define the hit box of the ship
         points = np.zeros((5, 2))
-        points[0] = (self.x + self.icon_w, y + self.icon_h // 2)
-        points[1] = (self.x + self.icon_w // 4, y - self.icon_h // 4)
-        points[2] = (self.x + self.icon_w // 4, y + self.icon_h // 2)
-        points[3] = (self.x - self.icon_w // 4, y + self.icon_h // 2)
-        points[4] = (self.x - self.icon_w // 4, y - self.icon_h // 4)
+        points[0] = (self.x + (4 + self.icon_w) // 2, y)
+        points[1] = (self.x + (4 + self.icon_w) // 4, y + (4 + self.icon_h) // 4)
+        points[2] = (self.x + (4 + self.icon_w) // 4, y - (4 + self.icon_h) // 4)
+        points[3] = (self.x - (4 + self.icon_w) // 2, y + (4 + self.icon_h) // 4)
+        points[4] = (self.x - (4 + self.icon_w) // 2, y - (4 + self.icon_h) // 4)
         super().set_hit_box(points)
 
         # Rotate the ship

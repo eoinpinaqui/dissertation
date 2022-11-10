@@ -23,8 +23,8 @@ class GameObject(object):
         self.hit_box = Polygon(points)
 
     def move(self):
-        x_off = round(np.sin(np.radians(self.angle)) * self.speed)
-        y_off = round(np.cos(np.radians(self.angle)) * self.speed)
+        x_off = round(np.cos(np.radians(self.angle)) * self.speed)
+        y_off = round(np.sin(np.radians(self.angle)) * self.speed)
         self.x += x_off
         self.y += y_off
         self.hit_box = affinity.translate(self.hit_box, xoff=x_off, yoff=y_off)
