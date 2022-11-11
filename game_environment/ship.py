@@ -1,5 +1,5 @@
 from .game_object import GameObject
-from .game_constants import BACKGROUND_COLOUR
+from .game_constants import BACKGROUND_COLOUR, MISSILE_THRESHOLD
 import cv2
 import numpy as np
 
@@ -33,6 +33,8 @@ class Ship(GameObject):
         points[4] = (self.x - (4 + self.icon_w) // 2, y - (4 + self.icon_h) // 4)
         super().set_hit_box(points)
 
+        self.missile_buffer = 0
+
         # Rotate the ship
         self.rotate(angle)
 
@@ -41,3 +43,13 @@ class Ship(GameObject):
         m = cv2.getRotationMatrix2D((self.padded_icon_w // 2, self.padded_icon_h // 2), self.angle, 1)
         self.icon = cv2.warpAffine(self.padded_icon, m, (self.padded_icon_w, self.padded_icon_h),
                                    borderValue=BACKGROUND_COLOUR)
+
+    def move(self):
+        super().move()
+        self.missile_buffer += 1
+
+    def can_fire_missile(self):
+        if self.missile_buffer > MISSILE_THRESHOLD:
+            self.missile_buffer = 0
+            return True
+        return False

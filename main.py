@@ -5,7 +5,7 @@ env = SinglePlayerGame()
 obs = env.reset()
 done = False
 total_reward = 0
-action = 4
+action = 5
 
 
 def press(key):
@@ -15,11 +15,12 @@ def press(key):
         if key.char == 's': action = 3
         if key.char == 'a': action = 0
         if key.char == 'd': action = 1
+        if key.char == 'm': action = 4
 
 
 def release(key):
     global action
-    action = 4
+    action = 5
 
 
 Listener(on_press=press, on_release=release).start()
