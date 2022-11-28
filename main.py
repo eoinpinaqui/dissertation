@@ -31,9 +31,11 @@ def release(key):
 
 Listener(on_press=press, on_release=release).start()
 while not done:
-    action = randint(0, 9)
-    print(action)
-    obs, reward, done, info = env.step([action, 0, 0, 0])
+    action1 = randint(0, 9)
+    action2 = randint(0, 9)
+    action3 = randint(0, 9)
+    action4 = randint(0, 9)
+    obs, reward, done, info = env.step([action1, action2, action3, action4])
     total_reward += reward
     env.render()
     if done:

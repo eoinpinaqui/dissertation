@@ -64,7 +64,7 @@ class Game(Env):
                 self.draw_element_on_canvas(ship, border)
 
             for missile in team.missiles:
-                self.draw_element_on_canvas(missile)
+                self.draw_element_on_canvas(missile, BACKGROUND_COLOUR)
 
         text = f'Gold: {self.teams[0].gold} Current: {self.teams[0].current_ship}'
         self.canvas = cv2.putText(self.canvas, text, (10, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1,
@@ -120,6 +120,10 @@ class Game(Env):
                     self.teams[team].ships.remove(ship)
                     if idx > self.teams[team].current_ship:
                         self.teams[team].current_ship -= 1
+
+            for missile in self.teams[team].missiles:
+                if not self.structure.covers(missile.hit_box):
+                    self.teams[team].missiles.remove(missile)
 
         self.draw_elements_on_canvas()
 

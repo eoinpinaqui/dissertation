@@ -15,11 +15,11 @@ class Team:
         self.gold = TEAM_GOLD_START
         self.ammo = 0
         self.delta = 0
+        self.color = TEAM_COLOURS[self.team_number]
+        (self.x, self.y) = TEAM_BASE_COORDS[self.team_number]
+        self.ship_start_x = BASE_MARGIN * 2 if self.x < BASE_MARGIN else GAME_WINDOW_WIDTH - BASE_MARGIN * 2
+        self.ship_start_y = BASE_MARGIN * 2 if self.y < BASE_MARGIN else GAME_WINDOW_HEIGHT - BASE_MARGIN * 2
 
-        if self.team_number == 1: self.color = [255, 0, 0]
-        if self.team_number == 2: self.color = [0, 0, 255]
-        if self.team_number == 3: self.color = [0, 255, 0]
-        if self.team_number == 4: self.color = [0, 255, 255]
 
     def step(self):
         # Check if passive gold has been earned
@@ -86,14 +86,14 @@ class Team:
     def spawn_gunner(self):
         if self.gold > GUNNER_COST:
             self.gold -= GUNNER_COST
-            self.ships.append(Gunner(f'Team {self.team_number} Gunner', 50, 50, 0, 0, self.team_number))
+            self.ships.append(Gunner(f'Team {self.team_number} Gunner', self.ship_start_x, self.ship_start_y, 0, 0, self.team_number))
 
     def spawn_scout(self):
         if self.gold > SCOUT_COST:
             self.gold -= SCOUT_COST
-            self.ships.append(Scout(f'Team {self.team_number} Scout', 50, 50, 0, 0, self.team_number))
+            self.ships.append(Scout(f'Team {self.team_number} Scout', self.ship_start_x, self.ship_start_y, 0, 0, self.team_number))
 
     def spawn_tank(self):
         if self.gold > TANK_COST:
             self.gold -= TANK_COST
-            self.ships.append(Tank(f'Team {self.team_number} Tank', 50, 50, 0, 0, self.team_number))
+            self.ships.append(Tank(f'Team {self.team_number} Tank', self.ship_start_x, self.ship_start_y, 0, 0, self.team_number))

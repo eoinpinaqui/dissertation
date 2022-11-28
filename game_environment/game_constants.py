@@ -34,6 +34,19 @@ TEAM_GOLD_START = 100
 TEAM_GOLD_DELTA = 25
 TEAM_AMMO_START = 5
 TEAM_AMMO_DELTA = 1
+TEAM_COLOURS = {
+    1: [255, 0, 0],
+    2: [0, 0, 255],
+    3: [0, 255, 0],
+    4: [0, 255, 255]
+}
+TEAM_BASE_COORDS = {
+    1: [0, 0],
+    2: [GAME_WINDOW_WIDTH, 0],
+    3: [GAME_WINDOW_WIDTH, GAME_WINDOW_HEIGHT],
+    4: [0, GAME_WINDOW_HEIGHT]
+}
+BASE_MARGIN = 50
 
 # Constants for missiles
 MISSILE_SPEED = 15
