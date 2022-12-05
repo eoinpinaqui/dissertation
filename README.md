@@ -2,7 +2,5 @@
 
 
 ## To Do
-- Get missile and ship collisions working :)
 - Picking up gold and ammo as collectibles :) 
-- Displaying hp and bases :)
-- Angles for spawinging ships in :) 
+- Decide whether I want bases or first to a certain number of points :) 
