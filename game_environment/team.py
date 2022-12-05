@@ -13,13 +13,12 @@ class Team:
         self.missiles = []
         self.current_ship = 0
         self.gold = TEAM_GOLD_START
-        self.ammo = 0
+        self.ammo = TEAM_AMMO_START
         self.delta = 0
         self.color = TEAM_COLOURS[self.team_number]
         (self.x, self.y) = TEAM_BASE_COORDS[self.team_number]
         self.ship_start_x = BASE_MARGIN * 2 if self.x < BASE_MARGIN else GAME_WINDOW_WIDTH - BASE_MARGIN * 2
         self.ship_start_y = BASE_MARGIN * 2 if self.y < BASE_MARGIN else GAME_WINDOW_HEIGHT - BASE_MARGIN * 2
-
 
     def step(self):
         # Check if passive gold has been earned
@@ -75,8 +74,10 @@ class Team:
             current_ship = self.ships[self.current_ship]
             missile_x = current_ship.x + round(np.cos(np.radians(current_ship.angle)) * MISSILE_SPEED ** 1.7)
             missile_y = current_ship.y + round(np.sin(np.radians(current_ship.angle)) * MISSILE_SPEED ** 1.7)
-            self.missiles.append(
-                Missile(f'Team {self.team_number} Missile', missile_x, missile_y, current_ship.angle, MISSILE_SPEED))
+            new_missile = Missile(f'Team {self.team_number} Missile', missile_x, missile_y, 0, MISSILE_SPEED)
+            for i in range(current_ship.angle):
+                new_missile.rotate_left()
+            self.missiles.append(new_missile)
 
     def change_ship(self):
         self.current_ship += 1
@@ -86,14 +87,23 @@ class Team:
     def spawn_gunner(self):
         if self.gold > GUNNER_COST:
             self.gold -= GUNNER_COST
-            self.ships.append(Gunner(f'Team {self.team_number} Gunner', self.ship_start_x, self.ship_start_y, 0, 0, self.team_number))
+            new_ship = Gunner(f'Team {self.team_number} Gunner', self.ship_start_x, self.ship_start_y, 0, 0, self.team_number)
+            for i in range(30 * self.team_number):
+                new_ship.rotate_left()
+            self.ships.append(new_ship)
 
     def spawn_scout(self):
         if self.gold > SCOUT_COST:
             self.gold -= SCOUT_COST
-            self.ships.append(Scout(f'Team {self.team_number} Scout', self.ship_start_x, self.ship_start_y, 0, 0, self.team_number))
+            new_ship = Scout(f'Team {self.team_number} Scout', self.ship_start_x, self.ship_start_y, 0, 0, self.team_number)
+            for i in range(15 * self.team_number):
+                new_ship.rotate_left()
+            self.ships.append(new_ship)
 
     def spawn_tank(self):
         if self.gold > TANK_COST:
             self.gold -= TANK_COST
-            self.ships.append(Tank(f'Team {self.team_number} Tank', self.ship_start_x, self.ship_start_y, 0, 0, self.team_number))
+            new_ship = Tank(f'Team {self.team_number} Tank', self.ship_start_x, self.ship_start_y, 0, 0, self.team_number)
+            for i in range(30 * self.team_number):
+                new_ship.rotate_left()
+            self.ships.append(new_ship)

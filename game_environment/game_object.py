@@ -35,7 +35,7 @@ class GameObject(object):
 
         # Read in the icon
         self.icon = cv2.imread(icon_path)
-        self.icon = cv2.resize(self.icon, (self.icon.shape[0] * 2, self.icon.shape[1] * 2))
+        self.icon = cv2.resize(self.icon, (self.icon.shape[0], self.icon.shape[1]))
         (self.icon_w, self.icon_h, self.icon_c) = self.icon.shape
 
         # Create a padding around the icon so that the rotations don't clip

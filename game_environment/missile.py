@@ -11,7 +11,7 @@ class Missile(GameObject):
                                       x=x,
                                       y=y,
                                       angle=angle,
-                                      turning_angle=0,
+                                      turning_angle=1,
                                       speed=speed,
                                       max_speed=speed,
                                       min_speed=speed,
