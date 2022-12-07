@@ -3,10 +3,6 @@ from pynput.keyboard import Listener
 from game_environment.game_constants import *
 from random import randint
 
-env = Game()
-obs = env.reset()
-done = False
-total_reward = 0
 action = DO_NOTHING
 
 
@@ -30,16 +26,21 @@ def release(key):
 
 
 Listener(on_press=press, on_release=release).start()
+env = Game()
+obs = env.reset()
+done = False
+rewards = [0, 0, 0, 0]
 while not done:
     action1 = randint(0, 9)
     action2 = randint(0, 9)
     action3 = randint(0, 9)
     action4 = randint(0, 9)
     obs, reward, done, info = env.step([action1, action2, action3, action4])
-    total_reward += reward
+    for i in range(len(rewards)):
+        rewards[i] += reward[i]
     env.render()
     if done:
         break
 
 env.close()
-print(total_reward)
+print(rewards)

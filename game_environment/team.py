@@ -4,6 +4,7 @@ from .scout import Scout
 from .tank import Tank
 from .missile import Missile
 import numpy as np
+from shapely.geometry.polygon import Polygon
 
 
 class Team:
@@ -17,8 +18,15 @@ class Team:
         self.delta = 0
         self.color = TEAM_COLOURS[self.team_number]
         (self.x, self.y) = TEAM_BASE_COORDS[self.team_number]
-        self.ship_start_x = BASE_MARGIN * 2 if self.x < BASE_MARGIN else GAME_WINDOW_WIDTH - BASE_MARGIN * 2
-        self.ship_start_y = BASE_MARGIN * 2 if self.y < BASE_MARGIN else GAME_WINDOW_HEIGHT - BASE_MARGIN * 2
+        self.ship_start_x = BASE_MARGIN * 1.5 if self.x < BASE_MARGIN else GAME_WINDOW_WIDTH - BASE_MARGIN * 1.5
+        self.ship_start_y = BASE_MARGIN * 1.5 if self.y < BASE_MARGIN else GAME_WINDOW_HEIGHT - BASE_MARGIN * 1.5
+        self.hp = TEAM_HP
+        points = np.zeros((4, 2))
+        points[0] = (self.x - BASE_MARGIN // 2, self.y - BASE_MARGIN // 2)
+        points[1] = (self.x - BASE_MARGIN // 2, self.y + BASE_MARGIN // 2)
+        points[2] = (self.x + BASE_MARGIN // 2, self.y + BASE_MARGIN // 2)
+        points[3] = (self.x + BASE_MARGIN // 2, self.y - BASE_MARGIN // 2)
+        self.hit_box = Polygon(points)
 
     def step(self):
         # Check if passive gold has been earned
@@ -28,7 +36,7 @@ class Team:
             self.add_ammo(TEAM_AMMO_DELTA)
             self.delta = 0
 
-        if self.current_ship >= len(self.ships):
+        if self.current_ship >= len(self.ships) or self.current_ship < 0:
             self.change_ship()
 
         # Move all the ships
@@ -107,3 +115,6 @@ class Team:
             for i in range(30 * self.team_number):
                 new_ship.rotate_left()
             self.ships.append(new_ship)
+
+    def dead(self):
+        return self.hp <= 0

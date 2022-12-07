@@ -35,6 +35,11 @@ class Game(Env):
 
         self.power_ups = []
 
+    def draw_base(self, team):
+        (minx, miny, maxx, maxy) = team.hit_box.bounds
+        (minx, miny, maxx, maxy) = (int(minx), int(miny), int(maxx), int(maxy))
+        self.canvas[GAME_WINDOW_HEIGHT - maxy:GAME_WINDOW_HEIGHT - miny, minx:maxx] = team.color
+
     def draw_element_on_canvas(self, element, border):
         if self.structure.covers(element.hit_box):
             (minx, miny, maxx, maxy) = element.hit_box.bounds
@@ -69,6 +74,8 @@ class Game(Env):
 
         # Draw the teams
         for team in self.teams:
+            if team.dead():
+                continue
             for idx, ship in enumerate(team.ships):
                 if idx == team.current_ship:
                     border = team.color
@@ -80,32 +87,26 @@ class Game(Env):
                 self.draw_element_on_canvas(missile, BACKGROUND_COLOUR)
 
         # Draw the bases
+        for team in self.teams:
+            if team.dead():
+                continue
+            self.draw_base(team)
 
         # Draw the game stats
-        blue_gold = f'Gold: {self.teams[0].gold}'
-        red_gold = f'Gold: {self.teams[1].gold}'
-        green_gold = f'Gold: {self.teams[2].gold}'
-        yellow_gold = f'Gold: {self.teams[3].gold}'
-        blue_ammo = f'Ammo: {self.teams[0].ammo}'
-        red_ammo = f'Ammo: {self.teams[1].ammo}'
-        green_ammo = f'Ammo: {self.teams[2].ammo}'
-        yellow_ammo = f'Ammo: {self.teams[3].ammo}'
-        self.canvas = cv2.putText(self.canvas, blue_gold, (0, GAME_WINDOW_HEIGHT - 5),
-                                  cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1, cv2.LINE_AA)
-        self.canvas = cv2.putText(self.canvas, blue_ammo, (0, GAME_WINDOW_HEIGHT - 20),
-                                  cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1, cv2.LINE_AA)
-        self.canvas = cv2.putText(self.canvas, red_gold, (GAME_WINDOW_WIDTH - BASE_MARGIN * 2, GAME_WINDOW_HEIGHT - 5),
-                                  cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1, cv2.LINE_AA)
-        self.canvas = cv2.putText(self.canvas, red_ammo, (GAME_WINDOW_WIDTH - BASE_MARGIN * 2, GAME_WINDOW_HEIGHT - 20),
-                                  cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1, cv2.LINE_AA)
-        self.canvas = cv2.putText(self.canvas, green_gold, (GAME_WINDOW_WIDTH - BASE_MARGIN * 2, 15),
-                                  cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1, cv2.LINE_AA)
-        self.canvas = cv2.putText(self.canvas, green_ammo, (GAME_WINDOW_WIDTH - BASE_MARGIN * 2, 30),
-                                  cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1, cv2.LINE_AA)
-        self.canvas = cv2.putText(self.canvas, yellow_gold, (0, 15), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1,
-                                  cv2.LINE_AA)
-        self.canvas = cv2.putText(self.canvas, yellow_ammo, (0, 30), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (0, 0, 0), 1,
-                                  cv2.LINE_AA)
+        for team in self.teams:
+            if team.dead():
+                continue
+            gold = f'Gold: {team.gold}'
+            ammo = f'Ammo: {team.ammo}'
+            hp = f'HP: {team.hp}'
+            self.canvas = cv2.putText(self.canvas, gold,
+                                      (team.x - BASE_MARGIN // 3, GAME_WINDOW_HEIGHT - team.y - BASE_MARGIN // 4),
+                                      cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            self.canvas = cv2.putText(self.canvas, ammo, (team.x - BASE_MARGIN // 3, GAME_WINDOW_HEIGHT - team.y),
+                                      cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            self.canvas = cv2.putText(self.canvas, hp,
+                                      (team.x - BASE_MARGIN // 3, GAME_WINDOW_HEIGHT - team.y + BASE_MARGIN // 4),
+                                      cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
     def reset(self):
         self.teams = []
@@ -127,6 +128,7 @@ class Game(Env):
 
     def step(self, actions):
         done = False
+        rewards = [0, 0, 0, 0]
 
         # Step all the collectibles
         for collectible in self.power_ups:
@@ -169,6 +171,18 @@ class Game(Env):
                     continue
 
                 missile_removed = False
+                for b, base in enumerate(self.teams):
+                    if missile.hit_box.intersects(base.hit_box):
+                        missile_removed = True
+                        self.teams[team].missiles.remove(missile)
+                        self.teams[b].hp -= 1
+                        if self.teams[b].hp == 0:
+                            for t, other_team in enumerate(self.teams):
+                                rewards[t] = 100
+                                if other_team.dead():
+                                    rewards[t] = 0
+                            rewards[b] = -150
+
                 for i, fleet in enumerate(self.teams):
                     if missile_removed:
                         break
@@ -201,6 +215,20 @@ class Game(Env):
                             self.teams[team].ammo += AMMO_AMOUNT
 
                 ship_removed = False
+                for b, base in enumerate(self.teams):
+                    if ship.hit_box.intersects(base.hit_box):
+                        ship_removed = True
+                        self.teams[team].ships.remove(ship)
+                        self.teams[b].hp -= 1
+                        if self.teams[team].current_ship >= s:
+                            self.teams[team].current_ship -= 1
+                        if self.teams[b].hp == 0:
+                            for t, other_team in enumerate(self.teams):
+                                rewards[t] = 100
+                                if other_team.dead():
+                                    rewards[t] = 0
+                            rewards[b] = -150
+
                 for i, fleet in enumerate(self.teams):
                     if ship_removed:
                         break
@@ -217,16 +245,20 @@ class Game(Env):
                                 self.teams[j].current_ship -= 1
 
         # Maybe spawn a collectible
-        power_up = randint(0, 50)
+        power_up = randint(0, 200)
         if power_up < 1:
             self.power_ups.append(Coin(COIN_NAME, randint(COIN_X_MIN, COIN_X_MAX), randint(COIN_Y_MIN, COIN_Y_MAX)))
         elif power_up < 2:
             self.power_ups.append(Ammo(AMMO_NAME, randint(AMMO_X_MIN, AMMO_X_MAX), randint(AMMO_Y_MIN, AMMO_Y_MAX)))
 
+        num_dead_teams = 0
+        for t, team in enumerate(self.teams):
+            if team.hp <= 0:
+                self.teams[t].ships = []
+                self.teams[t].missiles = []
+                num_dead_teams += 1
+
         # Draw the game
         self.draw_elements_on_canvas()
 
-        # Calculate the observed reward and check if the game is over
-        reward = 0
-
-        return self.canvas, reward, done, []
+        return self.canvas, rewards, num_dead_teams >= 3, []
