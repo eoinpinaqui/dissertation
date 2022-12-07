@@ -1,9 +1,12 @@
 from gym import Env, spaces
 from .game_constants import *
 from .team import Team
+from .coin import Coin
+from .ammo import Ammo
 from shapely.geometry.polygon import Polygon
 import numpy as np
 import cv2
+from random import randint
 
 
 class Game(Env):
@@ -29,6 +32,8 @@ class Game(Env):
         self.teams = []
         for i in range(1, 5):
             self.teams.append(Team(i))
+
+        self.power_ups = []
 
     def draw_element_on_canvas(self, element, border):
         if self.structure.covers(element.hit_box):
@@ -57,6 +62,12 @@ class Game(Env):
     def draw_elements_on_canvas(self):
         self.canvas = np.full((GAME_WINDOW_WIDTH, GAME_WINDOW_HEIGHT, GAME_WINDOW_CHANNELS), BACKGROUND_COLOUR,
                               dtype=np.uint8)
+
+        # Draw the collectibles
+        for collectible in self.power_ups:
+            self.draw_element_on_canvas(collectible, BACKGROUND_COLOUR)
+
+        # Draw the teams
         for team in self.teams:
             for idx, ship in enumerate(team.ships):
                 if idx == team.current_ship:
@@ -69,7 +80,6 @@ class Game(Env):
                 self.draw_element_on_canvas(missile, BACKGROUND_COLOUR)
 
         # Draw the bases
-
 
         # Draw the game stats
         blue_gold = f'Gold: {self.teams[0].gold}'
@@ -99,6 +109,7 @@ class Game(Env):
 
     def reset(self):
         self.teams = []
+        self.power_ups = []
         for i in range(1, 5):
             self.teams.append(Team(i))
         return self.canvas
@@ -117,6 +128,15 @@ class Game(Env):
     def step(self, actions):
         done = False
 
+        # Step all the collectibles
+        for collectible in self.power_ups:
+            collectible.step()
+            if collectible.name == COIN_NAME and collectible.time >= COIN_TIMEOUT:
+                self.power_ups.remove(collectible)
+            elif collectible.name == AMMO_NAME and collectible.time >= AMMO_TIMEOUT:
+                self.power_ups.remove(collectible)
+
+        # Step all the fleets
         for team, action in enumerate(actions):
             # Move all elements in a team
             self.teams[team].step()
@@ -172,6 +192,14 @@ class Game(Env):
                         self.teams[team].current_ship -= 1
                     continue
 
+                for collectible in self.power_ups:
+                    if ship.hit_box.intersects(collectible.hit_box):
+                        self.power_ups.remove(collectible)
+                        if collectible.name == COIN_NAME:
+                            self.teams[team].gold += COIN_GOLD
+                        if collectible.name == AMMO_NAME:
+                            self.teams[team].ammo += AMMO_AMOUNT
+
                 ship_removed = False
                 for i, fleet in enumerate(self.teams):
                     if ship_removed:
@@ -188,6 +216,14 @@ class Game(Env):
                             if self.teams[i].current_ship >= j:
                                 self.teams[j].current_ship -= 1
 
+        # Maybe spawn a collectible
+        power_up = randint(0, 50)
+        if power_up < 1:
+            self.power_ups.append(Coin(COIN_NAME, randint(COIN_X_MIN, COIN_X_MAX), randint(COIN_Y_MIN, COIN_Y_MAX)))
+        elif power_up < 2:
+            self.power_ups.append(Ammo(AMMO_NAME, randint(AMMO_X_MIN, AMMO_X_MAX), randint(AMMO_Y_MIN, AMMO_Y_MAX)))
+
+        # Draw the game
         self.draw_elements_on_canvas()
 
         # Calculate the observed reward and check if the game is over
